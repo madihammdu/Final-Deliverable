@@ -161,3 +161,56 @@ fig_arimax.update_layout(
     hovermode="x unified"
 )
 st.plotly_chart(fig_arimax, use_container_width=True)
+
+# ---- OLS Regression: Revenue vs. Transactions ----
+st.subheader("Linear Regression: Revenue Explained by Transactions")
+
+from statsmodels.api import OLS, add_constant
+
+# Prepare data
+df_reg = df_revenue.set_index("date").copy()
+df_reg = df_reg[["revenue", "transactions"]].dropna()
+
+# Add constant term for intercept
+X = add_constant(df_reg["transactions"])
+y = df_reg["revenue"]
+
+# Fit OLS model
+model = OLS(y, X).fit()
+df_reg["Predicted_Revenue"] = model.predict(X)
+
+# Plot actual vs predicted
+fig_reg = go.Figure()
+
+# Actual Revenue
+fig_reg.add_trace(go.Scatter(
+    x=df_reg.index,
+    y=df_reg["revenue"],
+    mode="lines+markers",
+    name="Actual Revenue",
+    hovertemplate="Date: %{x}<br>Revenue: %{y:.2f}<extra></extra>",
+    line=dict(color='blue')
+))
+
+# Predicted Revenue (Regression Line)
+fig_reg.add_trace(go.Scatter(
+    x=df_reg.index,
+    y=df_reg["Predicted_Revenue"],
+    mode="lines",
+    name="Predicted Revenue (Regression)",
+    line=dict(color='orange', dash='dot'),
+    hovertemplate="Date: %{x}<br>Predicted: %{y:.2f}<extra></extra>"
+))
+
+fig_reg.update_layout(
+    title="Linear Regression: Revenue vs Transactions",
+    xaxis_title="Date",
+    yaxis_title="Revenue",
+    hovermode="x unified"
+)
+
+st.plotly_chart(fig_reg, use_container_width=True)
+
+# Display regression summary metrics
+st.markdown("### Regression Summary")
+st.write(model.summary())

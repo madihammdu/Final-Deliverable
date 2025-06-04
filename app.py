@@ -34,7 +34,9 @@ fig1.update_layout(
 st.plotly_chart(fig1)
 
 # ARIMA Forecasting section
+st.subheader("ARIMA Forecast")
 steps = st.slider("Months to forecast", 1, 12, 4)
+expected = st.number_input("Enter your expected revenue for the final forecasted month (optional)", min_value=0.0, step=100.0)
 
 model = ARIMA(df_revenue.set_index("date")["revenue"], order=(1, 1, 1))
 results = model.fit()
@@ -43,7 +45,6 @@ forecast_index = forecast.predicted_mean.index
 ci = forecast.conf_int()
 
 # Forecast plot using Plotly
-st.subheader("ARIMA Forecast")
 fig2 = go.Figure()
 
 # Observed
@@ -75,6 +76,19 @@ fig2.add_trace(go.Scatter(
     name='Confidence Interval'
 ))
 
+# Plot expected revenue if provided
+if expected > 0:
+    fig2.add_trace(go.Scatter(
+        x=[forecast_index[-1]],
+        y=[expected],
+        mode='markers+text',
+        name='Your Expected Revenue',
+        marker=dict(color='red', size=10),
+        text=[f"${expected:,.0f}"],
+        textposition="top center",
+        hovertemplate='Expected: %{y}<extra></extra>'
+    ))
+
 fig2.update_layout(
     title="Forecasted Revenue",
     xaxis_title="Date",
@@ -84,6 +98,7 @@ fig2.update_layout(
 
 st.plotly_chart(fig2)
 
+# ---- ARIMAX Section ----
 st.subheader("ARIMAX Model: Revenue with CPI as External Regressor")
 
 @st.cache_data

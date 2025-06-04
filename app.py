@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import requests
 from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.api import OLS, add_constant
 
 st.title("Starbucks Financial Analysis")
 
@@ -14,24 +15,6 @@ def load_revenue_data():
     return df
 
 df_revenue = load_revenue_data()
-
-# Historical Revenue plot with hover
-st.subheader("Historical Revenue")
-fig1 = go.Figure()
-fig1.add_trace(go.Scatter(
-    x=df_revenue["date"], y=df_revenue["revenue"],
-    mode='lines+markers',
-    name='Revenue',
-    line=dict(color='blue'),
-    hovertemplate='Date: %{x}<br>Revenue: %{y}<extra></extra>'
-))
-fig1.update_layout(
-    title="Historical Revenue Over Time",
-    xaxis_title="Date",
-    yaxis_title="Revenue",
-    hovermode='x unified'
-)
-st.plotly_chart(fig1)
 
 # ARIMA Forecasting section
 st.subheader("ARIMA Forecast")
@@ -165,8 +148,6 @@ st.plotly_chart(fig_arimax, use_container_width=True)
 # ---- OLS Regression: Revenue vs. Transactions ----
 st.subheader("Linear Regression: Revenue Explained by Transactions")
 
-from statsmodels.api import OLS, add_constant
-
 # Prepare data
 df_reg = df_revenue.set_index("date").copy()
 df_reg = df_reg[["revenue", "transactions"]].dropna()
@@ -210,7 +191,3 @@ fig_reg.update_layout(
 )
 
 st.plotly_chart(fig_reg, use_container_width=True)
-
-# Display regression summary metrics
-st.markdown("### Regression Summary")
-st.write(model.summary())

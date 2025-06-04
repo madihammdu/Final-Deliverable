@@ -126,4 +126,87 @@ df_cpi = fetch_cpi()
 
 # Align revenue and CPI by date
 df_rev_adj = df_revenue.reset_index()
-df_rev_adj["date"] = df_rev_adj["date"] + pd.Ti
+df_rev_adj["date"] = df_rev_adj["date"] + pd.Timedelta(days=1)
+df_merged = pd.merge(df_cpi, df_rev_adj, on="date", how="inner").set_index("date")
+
+# ARIMAX modeling
+exog = df_merged[["CPI"]]
+arimax_model = ARIMA(df_merged["revenue"], order=(1, 1, 1), exog=exog)
+arimax_results = arimax_model.fit()
+df_merged["ARIMAX_Fitted"] = arimax_results.fittedvalues
+
+# Filter out first value (which is often 0)
+df_plot = df_merged[df_merged["ARIMAX_Fitted"] != 0]
+
+# Plot with Plotly
+fig_arimax = go.Figure()
+fig_arimax.add_trace(go.Scatter(
+    x=df_merged.index,
+    y=df_merged["revenue"],
+    mode="lines",
+    name="Actual Revenue",
+    hovertemplate="Date: %{x}<br>Revenue: %{y:.2f}<extra></extra>"
+))
+fig_arimax.add_trace(go.Scatter(
+    x=df_plot.index,
+    y=df_plot["ARIMAX_Fitted"],
+    mode="lines",
+    name="ARIMAX Fitted",
+    line=dict(dash='dot'),
+    hovertemplate="Date: %{x}<br>Fitted: %{y:.2f}<extra></extra>"
+))
+
+fig_arimax.update_layout(
+    title="Starbucks Revenue: Actual vs. ARIMAX (with CPI)",
+    xaxis_title="Date",
+    yaxis_title="Revenue",
+    hovermode="x unified"
+)
+st.plotly_chart(fig_arimax, use_container_width=True)
+
+# ---- OLS Regression: Revenue vs. Transactions ----
+st.subheader("Linear Regression: Revenue Explained by Transactions")
+
+# Prepare data
+df_reg = df_revenue.set_index("date").copy()
+df_reg = df_reg[["revenue", "transactions"]].dropna()
+
+# Add constant term for intercept
+X = add_constant(df_reg["transactions"])
+y = df_reg["revenue"]
+
+# Fit OLS model
+model = OLS(y, X).fit()
+df_reg["Predicted_Revenue"] = model.predict(X)
+
+# Plot actual vs predicted
+fig_reg = go.Figure()
+
+# Actual Revenue
+fig_reg.add_trace(go.Scatter(
+    x=df_reg.index,
+    y=df_reg["revenue"],
+    mode="lines+markers",
+    name="Actual Revenue",
+    hovertemplate="Date: %{x}<br>Revenue: %{y:.2f}<extra></extra>",
+    line=dict(color='blue')
+))
+
+# Predicted Revenue (Regression Line)
+fig_reg.add_trace(go.Scatter(
+    x=df_reg.index,
+    y=df_reg["Predicted_Revenue"],
+    mode="lines",
+    name="Predicted Revenue with Transactions",
+    line=dict(color='orange', dash='dot'),
+    hovertemplate="Date: %{x}<br>Predicted: %{y:.2f}<extra></extra>"
+))
+
+fig_reg.update_layout(
+    title="Linear Regression: Revenue vs Transactions",
+    xaxis_title="Date",
+    yaxis_title="Revenue",
+    hovermode="x unified"
+)
+
+st.plotly_chart(fig_reg, use_container_width=True)

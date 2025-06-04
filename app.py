@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import requests
 from statsmodels.tsa.arima.model import ARIMA
 
-st.title("Starbucks Financial Analysis 2")
+st.title("Starbucks Financial Analysis")
 
 # Load Starbucks revenue data
 @st.cache_data
@@ -97,68 +97,3 @@ fig2.update_layout(
 )
 
 st.plotly_chart(fig2)
-
-# ---- ARIMAX Section ----
-st.subheader("ARIMAX Model: Revenue with CPI as External Regressor")
-
-@st.cache_data
-def fetch_cpi():
-    api_key = "755f96b3bf3c15588f3de4dbd65ced72"
-    cpi_series_id = "CPALTT01USQ657N"
-    url = "https://api.stlouisfed.org/fred/series/observations"
-    params = {
-        "series_id": cpi_series_id,
-        "api_key": api_key,
-        "file_type": "json",
-        "observation_start": "2018-04-01"
-    }
-    response = requests.get(url, params=params)
-    data = response.json()["observations"]
-    df_cpi = pd.DataFrame(data)[["date", "value"]]
-    df_cpi.columns = ["date", "CPI"]
-    df_cpi["date"] = pd.to_datetime(df_cpi["date"])
-    df_cpi["CPI"] = df_cpi["CPI"].astype(float)
-    return df_cpi
-
-df_cpi = fetch_cpi()
-
-# Align revenue and CPI by date
-df_rev_adj = df_revenue.reset_index()
-df_rev_adj["date"] = df_rev_adj["date"] + pd.Timedelta(days=1)
-df_merged = pd.merge(df_cpi, df_rev_adj, on="date", how="inner").set_index("date")
-
-# ARIMAX modeling
-# ARIMAX modeling without intercept
-exog = df_merged[["CPI"]]
-arimax_model = ARIMA(df_merged["revenue"], order=(1, 1, 1), exog=exog, trend='n')  # trend='n' removes intercept
-arimax_results = arimax_model.fit()
-df_merged["ARIMAX_Fitted"] = arimax_results.fittedvalues
-
-# Filter out first value (which is often 0)
-df_plot = df_merged[df_merged["ARIMAX_Fitted"] != 0]
-
-# Plot with Plotly
-fig_arimax = go.Figure()
-fig_arimax.add_trace(go.Scatter(
-    x=df_merged.index,
-    y=df_merged["revenue"],
-    mode="lines",
-    name="Actual Revenue",
-    hovertemplate="Date: %{x}<br>Revenue: %{y:.2f}<extra></extra>"
-))
-fig_arimax.add_trace(go.Scatter(
-    x=df_plot.index,
-    y=df_plot["ARIMAX_Fitted"],
-    mode="lines",
-    name="ARIMAX Fitted (No Intercept)",
-    line=dict(dash='dot'),
-    hovertemplate="Date: %{x}<br>Fitted: %{y:.2f}<extra></extra>"
-))
-
-fig_arimax.update_layout(
-    title="Starbucks Revenue: Actual vs. ARIMAX (with CPI, No Intercept)",
-    xaxis_title="Date",
-    yaxis_title="Revenue",
-    hovermode="x unified"
-)
-st.plotly_chart(fig_arimax, use_container_width=True)

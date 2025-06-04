@@ -67,10 +67,15 @@ fig2.add_trace(go.Scatter(
     hovertemplate='Date: %{x}<br>Forecast: %{y:.0f}<extra></extra>'
 ))
 
-# Confidence Interval
+# Extend confidence interval to begin at last actual point
+ci_lower = [last_actual_value] + list(ci.iloc[:, 0])
+ci_upper = [last_actual_value] + list(ci.iloc[:, 1])
+ci_x = [last_actual_date] + list(forecast_index)
+
+# Shaded confidence interval area
 fig2.add_trace(go.Scatter(
-    x=list(forecast_index) + list(forecast_index[::-1]),
-    y=list(ci.iloc[:, 0]) + list(ci.iloc[:, 1][::-1]),
+    x=ci_x + ci_x[::-1],
+    y=ci_lower + ci_upper[::-1],
     fill='toself',
     fillcolor='rgba(192,192,192,0.3)',
     line=dict(color='rgba(255,255,255,0)'),

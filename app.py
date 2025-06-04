@@ -6,7 +6,7 @@ import requests
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.api import OLS, add_constant
 
-st.title("Starbucks Financial Analysis 2")
+st.title("Starbucks Financial Analysis")
 
 # Load Starbucks revenue data
 @st.cache_data
@@ -24,36 +24,31 @@ expected = st.number_input("Enter your expected revenue for the final forecasted
 model = ARIMA(df_revenue.set_index("date")["revenue"], order=(1, 1, 1))
 results = model.fit()
 forecast = results.get_forecast(steps=steps)
-forecast_index = forecast.predicted_mean.index
+forecast_mean = forecast.predicted_mean
 ci = forecast.conf_int()
+
+# Extend forecast to start from last actual point
+last_actual_date = df_revenue["date"].iloc[-1]
+last_actual_value = df_revenue["revenue"].iloc[-1]
+
+forecast_x = [last_actual_date] + list(forecast_mean.index)
+forecast_y = [last_actual_value] + list(forecast_mean)
 
 # Forecast plot using Plotly
 fig2 = go.Figure()
 
-# Observed Revenue
+# Observed
 fig2.add_trace(go.Scatter(
     x=df_revenue["date"], y=df_revenue["revenue"],
     mode='lines',
-    name='Observed Revenue',
+    name='Observed',
     line=dict(color='blue'),
     hovertemplate='Date: %{x}<br>Observed: %{y}<extra></extra>'
 ))
 
-# Fitted (in-sample predicted) values
-fitted_vals = results.fittedvalues
-fitted_vals.index = df_revenue["date"].iloc[-len(fitted_vals):]  # align dates
+# Forecast (with seamless transition)
 fig2.add_trace(go.Scatter(
-    x=fitted_vals.index,
-    y=fitted_vals,
-    mode='lines',
-    name='Fitted (ARIMA)',
-    line=dict(color='green', dash='dot'),
-    hovertemplate='Date: %{x}<br>Fitted: %{y:.0f}<extra></extra>'
-))
-
-# Forecast (future values)
-fig2.add_trace(go.Scatter(
-    x=forecast_index, y=forecast.predicted_mean,
+    x=forecast_x, y=forecast_y,
     mode='lines',
     name='Forecast',
     line=dict(color='skyblue', dash='dash'),
@@ -62,7 +57,7 @@ fig2.add_trace(go.Scatter(
 
 # Confidence Interval
 fig2.add_trace(go.Scatter(
-    x=list(forecast_index) + list(forecast_index[::-1]),
+    x=list(forecast_mean.index) + list(forecast_mean.index[::-1]),
     y=list(ci.iloc[:, 0]) + list(ci.iloc[:, 1][::-1]),
     fill='toself',
     fillcolor='rgba(192,192,192,0.3)',
@@ -71,10 +66,10 @@ fig2.add_trace(go.Scatter(
     name='Confidence Interval'
 ))
 
-# Expected Revenue Marker
+# Plot expected revenue if provided
 if expected > 0:
     fig2.add_trace(go.Scatter(
-        x=[forecast_index[-1]],
+        x=[forecast_mean.index[-1]],
         y=[expected],
         mode='markers+text',
         name='Your Expected Revenue',
@@ -85,7 +80,7 @@ if expected > 0:
     ))
 
 fig2.update_layout(
-    title="Forecasted Revenue with Fitted Values (ARIMA)",
+    title="Forecasted Revenue",
     xaxis_title="Date",
     yaxis_title="Revenue",
     hovermode='x unified'

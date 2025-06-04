@@ -178,7 +178,7 @@ fig_reg.add_trace(go.Scatter(
     x=df_reg.index,
     y=df_reg["Predicted_Revenue"],
     mode="lines",
-    name="Predicted Revenue (Regression)",
+    name="Predicted Revenue with Transactions",
     line=dict(color='orange', dash='dot'),
     hovertemplate="Date: %{x}<br>Predicted: %{y:.2f}<extra></extra>"
 ))

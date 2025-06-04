@@ -30,16 +30,28 @@ ci = forecast.conf_int()
 # Forecast plot using Plotly
 fig2 = go.Figure()
 
-# Observed
+# Observed Revenue
 fig2.add_trace(go.Scatter(
     x=df_revenue["date"], y=df_revenue["revenue"],
     mode='lines',
-    name='Observed',
+    name='Observed Revenue',
     line=dict(color='blue'),
     hovertemplate='Date: %{x}<br>Observed: %{y}<extra></extra>'
 ))
 
-# Forecast
+# Fitted (in-sample predicted) values
+fitted_vals = results.fittedvalues
+fitted_vals.index = df_revenue["date"].iloc[-len(fitted_vals):]  # align dates
+fig2.add_trace(go.Scatter(
+    x=fitted_vals.index,
+    y=fitted_vals,
+    mode='lines',
+    name='Fitted (ARIMA)',
+    line=dict(color='green', dash='dot'),
+    hovertemplate='Date: %{x}<br>Fitted: %{y:.0f}<extra></extra>'
+))
+
+# Forecast (future values)
 fig2.add_trace(go.Scatter(
     x=forecast_index, y=forecast.predicted_mean,
     mode='lines',
@@ -59,7 +71,7 @@ fig2.add_trace(go.Scatter(
     name='Confidence Interval'
 ))
 
-# Plot expected revenue if provided
+# Expected Revenue Marker
 if expected > 0:
     fig2.add_trace(go.Scatter(
         x=[forecast_index[-1]],
@@ -73,7 +85,7 @@ if expected > 0:
     ))
 
 fig2.update_layout(
-    title="Forecasted Revenue",
+    title="Forecasted Revenue with Fitted Values (ARIMA)",
     xaxis_title="Date",
     yaxis_title="Revenue",
     hovermode='x unified'

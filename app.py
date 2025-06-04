@@ -79,7 +79,7 @@ df_cpi = fetch_cpi()
 
 # Merge CPI with revenue data (adjust dates for alignment if needed)
 df_revenue_adj = df_revenue.copy()
-df_revenue_adj["date"] = df_revenue_adj["date"] + pd.Timedelta(days=1)  # keep as in your original
+df_revenue_adj["date"] = df_revenue_adj["date"] + pd.Timedelta(days=1)
 
 df_merged = pd.merge(df_cpi, df_revenue_adj, on="date", how="inner").set_index("date")
 
@@ -91,10 +91,12 @@ arimax_results = arimax_model.fit()
 # Add fitted values to the dataframe
 df_merged["ARIMAX_Fitted"] = arimax_results.fittedvalues
 
-# Plot Actual revenue vs ARIMAX fitted values
+# Filter out initial zero fitted values for plotting
+df_filtered = df_merged[df_merged["ARIMAX_Fitted"] != 0]
+
 fig3, ax3 = plt.subplots(figsize=(12, 6))
 ax3.plot(df_merged.index, df_merged["revenue"], label="Actual Revenue", linewidth=2)
-ax3.plot(df_merged.index, df_merged["ARIMAX_Fitted"], label="ARIMAX Fitted", linestyle=":")
+ax3.plot(df_filtered.index, df_filtered["ARIMAX_Fitted"], label="ARIMAX Fitted", linestyle=":")
 ax3.set_title("Starbucks Revenue: Actual vs. ARIMAX")
 ax3.set_xlabel("Date")
 ax3.set_ylabel("Revenue")

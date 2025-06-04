@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import requests
 from statsmodels.tsa.arima.model import ARIMA
 
-st.title("Starbucks Financial Analysis")
+st.title("Starbucks Financial Analysis 2")
 
 # Load Starbucks revenue data
 @st.cache_data
@@ -128,8 +128,9 @@ df_rev_adj["date"] = df_rev_adj["date"] + pd.Timedelta(days=1)
 df_merged = pd.merge(df_cpi, df_rev_adj, on="date", how="inner").set_index("date")
 
 # ARIMAX modeling
+# ARIMAX modeling without intercept
 exog = df_merged[["CPI"]]
-arimax_model = ARIMA(df_merged["revenue"], order=(1, 1, 1), exog=exog)
+arimax_model = ARIMA(df_merged["revenue"], order=(1, 1, 1), exog=exog, trend='n')  # trend='n' removes intercept
 arimax_results = arimax_model.fit()
 df_merged["ARIMAX_Fitted"] = arimax_results.fittedvalues
 
@@ -149,13 +150,13 @@ fig_arimax.add_trace(go.Scatter(
     x=df_plot.index,
     y=df_plot["ARIMAX_Fitted"],
     mode="lines",
-    name="ARIMAX Fitted",
+    name="ARIMAX Fitted (No Intercept)",
     line=dict(dash='dot'),
     hovertemplate="Date: %{x}<br>Fitted: %{y:.2f}<extra></extra>"
 ))
 
 fig_arimax.update_layout(
-    title="Starbucks Revenue: Actual vs. ARIMAX (with CPI)",
+    title="Starbucks Revenue: Actual vs. ARIMAX (with CPI, No Intercept)",
     xaxis_title="Date",
     yaxis_title="Revenue",
     hovermode="x unified"

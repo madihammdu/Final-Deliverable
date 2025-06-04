@@ -6,7 +6,7 @@ import requests
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.api import OLS, add_constant
 
-st.title("Starbucks Financial Analysis")
+st.title("Starbucks Financial Analysis 1")
 
 # Load Starbucks revenue data
 @st.cache_data
@@ -25,28 +25,40 @@ model = ARIMA(df_revenue.set_index("date")["revenue"], order=(1, 1, 1))
 results = model.fit()
 forecast = results.get_forecast(steps=steps)
 forecast_mean = forecast.predicted_mean
+forecast_index = forecast_mean.index
 ci = forecast.conf_int()
 
-# Extend forecast to start from last actual point
+# Seamless forecast line
 last_actual_date = df_revenue["date"].iloc[-1]
 last_actual_value = df_revenue["revenue"].iloc[-1]
-
-forecast_x = [last_actual_date] + list(forecast_mean.index)
+forecast_x = [last_actual_date] + list(forecast_index)
 forecast_y = [last_actual_value] + list(forecast_mean)
 
 # Forecast plot using Plotly
 fig2 = go.Figure()
 
-# Observed
+# Observed Revenue
 fig2.add_trace(go.Scatter(
     x=df_revenue["date"], y=df_revenue["revenue"],
     mode='lines',
-    name='Observed',
+    name='Observed Revenue',
     line=dict(color='blue'),
     hovertemplate='Date: %{x}<br>Observed: %{y}<extra></extra>'
 ))
 
-# Forecast (with seamless transition)
+# Fitted (in-sample predicted) values
+fitted_vals = results.fittedvalues
+fitted_vals.index = df_revenue["date"].iloc[-len(fitted_vals):]  # align dates
+fig2.add_trace(go.Scatter(
+    x=fitted_vals.index,
+    y=fitted_vals,
+    mode='lines',
+    name='Fitted (ARIMA)',
+    line=dict(color='green', dash='dot'),
+    hovertemplate='Date: %{x}<br>Fitted: %{y:.0f}<extra></extra>'
+))
+
+# Forecast (future values) with transition
 fig2.add_trace(go.Scatter(
     x=forecast_x, y=forecast_y,
     mode='lines',
@@ -57,7 +69,7 @@ fig2.add_trace(go.Scatter(
 
 # Confidence Interval
 fig2.add_trace(go.Scatter(
-    x=list(forecast_mean.index) + list(forecast_mean.index[::-1]),
+    x=list(forecast_index) + list(forecast_index[::-1]),
     y=list(ci.iloc[:, 0]) + list(ci.iloc[:, 1][::-1]),
     fill='toself',
     fillcolor='rgba(192,192,192,0.3)',
@@ -66,10 +78,10 @@ fig2.add_trace(go.Scatter(
     name='Confidence Interval'
 ))
 
-# Plot expected revenue if provided
+# Expected Revenue Marker
 if expected > 0:
     fig2.add_trace(go.Scatter(
-        x=[forecast_mean.index[-1]],
+        x=[forecast_index[-1]],
         y=[expected],
         mode='markers+text',
         name='Your Expected Revenue',
@@ -80,7 +92,7 @@ if expected > 0:
     ))
 
 fig2.update_layout(
-    title="Forecasted Revenue",
+    title="Forecasted Revenue with Fitted Values (ARIMA)",
     xaxis_title="Date",
     yaxis_title="Revenue",
     hovermode='x unified'
@@ -114,87 +126,4 @@ df_cpi = fetch_cpi()
 
 # Align revenue and CPI by date
 df_rev_adj = df_revenue.reset_index()
-df_rev_adj["date"] = df_rev_adj["date"] + pd.Timedelta(days=1)
-df_merged = pd.merge(df_cpi, df_rev_adj, on="date", how="inner").set_index("date")
-
-# ARIMAX modeling
-exog = df_merged[["CPI"]]
-arimax_model = ARIMA(df_merged["revenue"], order=(1, 1, 1), exog=exog)
-arimax_results = arimax_model.fit()
-df_merged["ARIMAX_Fitted"] = arimax_results.fittedvalues
-
-# Filter out first value (which is often 0)
-df_plot = df_merged[df_merged["ARIMAX_Fitted"] != 0]
-
-# Plot with Plotly
-fig_arimax = go.Figure()
-fig_arimax.add_trace(go.Scatter(
-    x=df_merged.index,
-    y=df_merged["revenue"],
-    mode="lines",
-    name="Actual Revenue",
-    hovertemplate="Date: %{x}<br>Revenue: %{y:.2f}<extra></extra>"
-))
-fig_arimax.add_trace(go.Scatter(
-    x=df_plot.index,
-    y=df_plot["ARIMAX_Fitted"],
-    mode="lines",
-    name="ARIMAX Fitted",
-    line=dict(dash='dot'),
-    hovertemplate="Date: %{x}<br>Fitted: %{y:.2f}<extra></extra>"
-))
-
-fig_arimax.update_layout(
-    title="Starbucks Revenue: Actual vs. ARIMAX (with CPI)",
-    xaxis_title="Date",
-    yaxis_title="Revenue",
-    hovermode="x unified"
-)
-st.plotly_chart(fig_arimax, use_container_width=True)
-
-# ---- OLS Regression: Revenue vs. Transactions ----
-st.subheader("Linear Regression: Revenue Explained by Transactions")
-
-# Prepare data
-df_reg = df_revenue.set_index("date").copy()
-df_reg = df_reg[["revenue", "transactions"]].dropna()
-
-# Add constant term for intercept
-X = add_constant(df_reg["transactions"])
-y = df_reg["revenue"]
-
-# Fit OLS model
-model = OLS(y, X).fit()
-df_reg["Predicted_Revenue"] = model.predict(X)
-
-# Plot actual vs predicted
-fig_reg = go.Figure()
-
-# Actual Revenue
-fig_reg.add_trace(go.Scatter(
-    x=df_reg.index,
-    y=df_reg["revenue"],
-    mode="lines+markers",
-    name="Actual Revenue",
-    hovertemplate="Date: %{x}<br>Revenue: %{y:.2f}<extra></extra>",
-    line=dict(color='blue')
-))
-
-# Predicted Revenue (Regression Line)
-fig_reg.add_trace(go.Scatter(
-    x=df_reg.index,
-    y=df_reg["Predicted_Revenue"],
-    mode="lines",
-    name="Predicted Revenue with Transactions",
-    line=dict(color='orange', dash='dot'),
-    hovertemplate="Date: %{x}<br>Predicted: %{y:.2f}<extra></extra>"
-))
-
-fig_reg.update_layout(
-    title="Linear Regression: Revenue vs Transactions",
-    xaxis_title="Date",
-    yaxis_title="Revenue",
-    hovermode="x unified"
-)
-
-st.plotly_chart(fig_reg, use_container_width=True)
+df_rev_adj["date"] = df_rev_adj["date"] + pd.Ti

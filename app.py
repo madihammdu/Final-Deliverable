@@ -4,7 +4,7 @@ import requests
 from statsmodels.tsa.arima.model import ARIMA
 import plotly.graph_objects as go
 
-st.title("Starbucks Financial Analysis")
+st.title("Starbucks Financial Analysis 1")
 
 # Load Starbucks revenue data
 @st.cache_data

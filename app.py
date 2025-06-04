@@ -1,3 +1,4 @@
-git add app.py
-git commit -m "Add basic Streamlit app"
-git push
+import streamlit as st
+
+st.title("My App")
+st.write("This app is running successfully!")

@@ -276,3 +276,14 @@ fig_reg.update_layout(
 )
 
 st.plotly_chart(fig_reg, use_container_width=True)
+
+# ---- Final Summary Section ----
+st.markdown("---")
+st.subheader("Audit Committee Summary")
+st.write(
+    "The analysis does not provide conclusive evidence that Starbucks is overstating its revenue "
+    "but highlights areas warranting further review. While reported revenue aligns with historical trends, "
+    "discrepancies between GAAP and non-GAAP figures, aggressive growth relative to industry benchmarks, and "
+    "potential revenue recognition timing issues suggest the need for closer examination. Continued monitoring "
+    "and deeper audit procedures are recommended."
+)

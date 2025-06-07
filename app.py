@@ -6,7 +6,7 @@ import requests
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.api import OLS, add_constant
 
-st.title("Starbucks Financial Analysis")
+st.title("Starbucks Financial Analysis A")
 
 # Load Starbucks revenue data
 @st.cache_data
@@ -169,70 +169,46 @@ fig_arimax.update_layout(
 )
 st.plotly_chart(fig_arimax, use_container_width=True)
 
-import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
-from statsmodels.api import OLS, add_constant
+# ---- OLS Regression: Revenue vs. Transactions ----
+st.subheader("Linear Regression: Revenue Explained by Transactions")
 
-st.subheader("Linear Regression: Revenue Explained Over Time")
+# Prepare data
+df_reg = df_revenue.set_index("date").copy()
+df_reg = df_reg[["revenue", "transactions"]].dropna()
 
-# Load the combined data
-@st.cache_data
-def load_data():
-    df = pd.read_csv("starbucks_financials_expanded_industry_3.csv", parse_dates=["date"])
-    return df[["date", "revenue", "industry_average_fixed"]]
+# Add constant term for intercept
+X = add_constant(df_reg["transactions"])
+y = df_reg["revenue"]
 
-df = load_data()
-
-# Ensure data is sorted by date
-df = df.sort_values("date").dropna(subset=["revenue"])
-
-# Create time index for regression (numeric)
-df["time_index"] = np.arange(len(df))
-
-# Run linear regression: revenue ~ time_index
-X = add_constant(df["time_index"])
-y = df["revenue"]
+# Fit OLS model
 model = OLS(y, X).fit()
-df["Predicted_Revenue"] = model.predict(X)
+df_reg["Predicted_Revenue"] = model.predict(X)
 
-# Plot
+# Plot actual vs predicted
 fig_reg = go.Figure()
 
 # Actual Revenue
 fig_reg.add_trace(go.Scatter(
-    x=df["date"],
-    y=df["revenue"],
+    x=df_reg.index,
+    y=df_reg["revenue"],
     mode="lines+markers",
     name="Actual Revenue",
-    line=dict(color="blue"),
-    hovertemplate="Date: %{x|%b %Y}<br>Revenue: %{y:.2f}<extra></extra>"
+    hovertemplate="Date: %{x}<br>Revenue: %{y:.2f}<extra></extra>",
+    line=dict(color='blue')
 ))
 
-# Predicted Revenue (Linear)
+# Predicted Revenue (Regression Line)
 fig_reg.add_trace(go.Scatter(
-    x=df["date"],
-    y=df["Predicted_Revenue"],
+    x=df_reg.index,
+    y=df_reg["Predicted_Revenue"],
     mode="lines",
-    name="Predicted Revenue (Linear Trend)",
-    line=dict(color="orange", dash="dot"),
-    hovertemplate="Date: %{x|%b %Y}<br>Predicted: %{y:.2f}<extra></extra>"
+    name="Predicted Revenue with Transactions",
+    line=dict(color='orange', dash='dot'),
+    hovertemplate="Date: %{x}<br>Predicted: %{y:.2f}<extra></extra>"
 ))
 
-# Industry Average Revenue
-fig_reg.add_trace(go.Scatter(
-    x=df["date"],
-    y=df["industry_average_fixed"],
-    mode="lines",
-    name="Industry Average Revenue",
-    line=dict(color="gray", dash="dash"),
-    hovertemplate="Date: %{x|%b %Y}<br>Industry Avg: %{y:.2f}<extra></extra>"
-))
-
-# Update layout
 fig_reg.update_layout(
-    title="Linear Regression of Revenue Over Time (with Industry Average)",
+    title="Linear Regression: Revenue vs Transactions",
     xaxis_title="Date",
     yaxis_title="Revenue",
     hovermode="x unified"

@@ -228,8 +228,12 @@ df_reg["Predicted_Revenue"] = model.predict(X)
 # Reset index to merge on date
 df_reg = df_reg.reset_index()
 
-# Merge with industry average on date
-df_merged_plot = pd.merge(df_reg, df_industry, on='date', how='left')
+# Make sure both DataFrames are sorted by date
+df_reg = df_reg.sort_values("date")
+df_industry = df_industry.sort_values("date")
+
+# Merge on nearest previous date
+df_merged_plot = pd.merge_asof(df_reg, df_industry, on='date')
 
 # Plot all three lines
 fig_reg = go.Figure()

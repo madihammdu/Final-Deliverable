@@ -169,66 +169,70 @@ fig_arimax.update_layout(
 )
 st.plotly_chart(fig_arimax, use_container_width=True)
 
-# ---- OLS Regression: Revenue vs. Transactions ----
-st.subheader("Linear Regression: Revenue Explained by Transactions")
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from statsmodels.api import OLS, add_constant
 
-# Load industry data
+st.subheader("Linear Regression: Revenue Explained Over Time")
+
+# Load the combined data
 @st.cache_data
-def load_industry_data():
+def load_data():
     df = pd.read_csv("starbucks_financials_expanded_industry_3.csv", parse_dates=["date"])
-    return df[["date", "industry_average_fixed"]]
+    return df[["date", "revenue", "industry_average_fixed"]]
 
-df_industry = load_industry_data()
+df = load_data()
 
-# Prepare Starbucks data
-df_reg = df_revenue.set_index("date").copy()
-df_reg = df_reg[["revenue", "transactions"]].dropna()
+# Ensure data is sorted by date
+df = df.sort_values("date").dropna(subset=["revenue"])
 
-# Add constant term and fit OLS model
-X = add_constant(df_reg["transactions"])
-y = df_reg["revenue"]
+# Create time index for regression (numeric)
+df["time_index"] = np.arange(len(df))
+
+# Run linear regression: revenue ~ time_index
+X = add_constant(df["time_index"])
+y = df["revenue"]
 model = OLS(y, X).fit()
-df_reg["Predicted_Revenue"] = model.predict(X)
+df["Predicted_Revenue"] = model.predict(X)
 
-# Merge with industry average for plotting
-df_reg_plot = df_reg.reset_index().merge(df_industry, on="date", how="left")
-df_reg_plot.set_index("date", inplace=True)  # Align index with df_reg
-
-# Plot using Plotly
+# Plot
 fig_reg = go.Figure()
 
 # Actual Revenue
 fig_reg.add_trace(go.Scatter(
-    x=df_reg.index,
-    y=df_reg["revenue"],
+    x=df["date"],
+    y=df["revenue"],
     mode="lines+markers",
     name="Actual Revenue",
-    hovertemplate="Date: %{x}<br>Revenue: %{y:.2f}<extra></extra>",
-    line=dict(color='blue')
+    line=dict(color="blue"),
+    hovertemplate="Date: %{x|%b %Y}<br>Revenue: %{y:.2f}<extra></extra>"
 ))
 
-# Predicted Revenue
+# Predicted Revenue (Linear)
 fig_reg.add_trace(go.Scatter(
-    x=df_reg.index,
-    y=df_reg["Predicted_Revenue"],
+    x=df["date"],
+    y=df["Predicted_Revenue"],
     mode="lines",
-    name="Predicted Revenue with Transactions",
-    line=dict(color='orange', dash='dot'),
-    hovertemplate="Date: %{x}<br>Predicted: %{y:.2f}<extra></extra>"
+    name="Predicted Revenue (Linear Trend)",
+    line=dict(color="orange", dash="dot"),
+    hovertemplate="Date: %{x|%b %Y}<br>Predicted: %{y:.2f}<extra></extra>"
 ))
 
-# ✅ Fixed: Industry Average Revenue (now uses the same x-index)
+# Industry Average Revenue
 fig_reg.add_trace(go.Scatter(
-    x=df_reg.index,
-    y=df_reg_plot["industry_average_fixed"],
+    x=df["date"],
+    y=df["industry_average_fixed"],
     mode="lines",
     name="Industry Average Revenue",
     line=dict(color="gray", dash="dash"),
-    hovertemplate="Date: %{x}<br>Industry Avg: %{y:.2f}<extra></extra>"
+    hovertemplate="Date: %{x|%b %Y}<br>Industry Avg: %{y:.2f}<extra></extra>"
 ))
 
+# Update layout
 fig_reg.update_layout(
-    title="Linear Regression: Revenue vs Transactions (with Industry Average)",
+    title="Linear Regression of Revenue Over Time (with Industry Average)",
     xaxis_title="Date",
     yaxis_title="Revenue",
     hovermode="x unified"

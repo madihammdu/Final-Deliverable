@@ -218,7 +218,7 @@ fig_reg.add_trace(go.Scatter(
 
 # Industry Average Revenue
 fig_reg.add_trace(go.Scatter(
-    x=df_reg_plot["date"],
+    x=df_reg.index,
     y=df_reg_plot["industry_average_fixed"],
     mode="lines",
     name="Industry Average Revenue",

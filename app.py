@@ -192,6 +192,7 @@ df_reg["Predicted_Revenue"] = model.predict(X)
 
 # Merge with industry average for plotting
 df_reg_plot = df_reg.reset_index().merge(df_industry, on="date", how="left")
+df_reg_plot.set_index("date", inplace=True)  # Align index with df_reg
 
 # Plot using Plotly
 fig_reg = go.Figure()
@@ -216,7 +217,7 @@ fig_reg.add_trace(go.Scatter(
     hovertemplate="Date: %{x}<br>Predicted: %{y:.2f}<extra></extra>"
 ))
 
-# Industry Average Revenue
+# ✅ Fixed: Industry Average Revenue (now uses the same x-index)
 fig_reg.add_trace(go.Scatter(
     x=df_reg.index,
     y=df_reg_plot["industry_average_fixed"],

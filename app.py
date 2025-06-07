@@ -6,7 +6,7 @@ import requests
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.api import OLS, add_constant
 
-st.title("Starbucks Financial Analysis 1")
+st.title("Starbucks Financial Analysis")
 
 # Load Starbucks revenue data
 @st.cache_data

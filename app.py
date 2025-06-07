@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -6,7 +7,7 @@ import requests
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.api import OLS, add_constant
 
-st.title("Starbucks Financial Analysis A")
+st.title("Starbucks Financial Analysis")
 
 # Load Starbucks revenue data
 @st.cache_data
@@ -106,6 +107,7 @@ fig2.update_layout(
 st.plotly_chart(fig2)
 
 # ---- ARIMAX Section ----
+st.markdown("---")
 st.subheader("ARIMAX Model: Revenue with CPI as External Regressor")
 
 @st.cache_data
@@ -170,6 +172,7 @@ fig_arimax.update_layout(
 st.plotly_chart(fig_arimax, use_container_width=True)
 
 # ---- OLS Regression: Revenue vs. Transactions ----
+st.markdown("---")
 st.subheader("Linear Regression: Revenue Explained by Transactions")
 
 import io
